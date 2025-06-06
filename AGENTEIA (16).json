@@ -1,0 +1,466 @@
+{
+  "name": "AGENTEIA",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -3360,
+        -140
+      ],
+      "id": "82752743-18a6-4501-8211-94c41a213c3f",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/shared/tgsblandos.pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        -3080,
+        -140
+      ],
+      "id": "f5bdacdb-dacd-434e-b86b-e7c7356a8af9",
+      "name": "Read/Write Files from Disk",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "=archivoslocales",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.1,
+      "position": [
+        -2700,
+        -140
+      ],
+      "id": "efe8981a-b40f-4edf-863d-642f5d8c780d",
+      "name": "Qdrant Vector Store",
+      "credentials": {
+        "qdrantApi": {
+          "id": "sFfERYppMeBnFNeA",
+          "name": "Local QdrantApi database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        -2760,
+        80
+      ],
+      "id": "45936bab-8144-4204-8bd9-508cda2b6521",
+      "name": "Embeddings Ollama",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        -2620,
+        100
+      ],
+      "id": "6b07e1b7-721e-4ce5-a93e-fbca12fddd07",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -2540,
+        300
+      ],
+      "id": "e0417e29-5c8c-4a72-b122-f47c423084ae",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -3360,
+        560
+      ],
+      "id": "01697bc4-b005-4f5c-aaf2-89425c7e266c",
+      "name": "When chat message received",
+      "webhookId": "f5b49e61-8db8-4bfd-829c-370dd887c1d8"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "73267e35-45f8-4bea-b2fa-61c2a93ed0e8",
+              "name": "chatInput",
+              "value": "={{ $json?.chatInput || $json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "4a8222cb-860a-442e-88aa-dd3eb642eab0",
+              "name": "sessionId",
+              "value": "={{ $json[\"sessionId\"] || $json[\"chatId\"] || $json[\"userId\"] || $json[\"id\"] || \"default\" }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3060,
+        560
+      ],
+      "id": "744ca53d-237e-4254-ade3-86d7f0241562",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "Eres un asistente inteligente especializado en responder preguntas basándote ÚNICAMENTE en el contenido de LA BASE DE DATOS alojada en el nodo de qdrant vector store\n\nINSTRUCCIONES IMPORTANTES:\n1. SIEMPRE y SOLAMENTE usa la base de datos de la vector store para responder\n2. Basa tu respuesta ÚNICAMENTE en la información encontrada por la búsqueda\n3. Si no encuentras información relevante, di claramente \"No encontré información sobre esa consulta en la base de datos\"\n4. Cita o menciona de dónde proviene la información cuando sea posible\n\nResponde de forma clara, concisa y profesional."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -2800,
+        520
+      ],
+      "id": "bd68ccf0-e77c-4b74-8747-0bdfdbedf4a4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -3120,
+        780
+      ],
+      "id": "b72e9c7f-edaa-431e-8948-4c18a1395670",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmOllama",
+      "typeVersion": 1,
+      "position": [
+        -1760,
+        840
+      ],
+      "id": "71f70a6e-f013-44af-927b-f35249f9edc4",
+      "name": "Ollama Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "base_de_conocimiento",
+        "toolDescription": "usar coleccion de qdrant para resolver consultas",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "=archivoslocales",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.1,
+      "position": [
+        -2660,
+        880
+      ],
+      "id": "7caae689-5df6-4198-8584-16d8c07af95e",
+      "name": "Qdrant Vector Store1",
+      "credentials": {
+        "qdrantApi": {
+          "id": "sFfERYppMeBnFNeA",
+          "name": "Local QdrantApi database"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        -2420,
+        1100
+      ],
+      "id": "8fc12ddb-c130-4d9c-b504-016d8ae637b5",
+      "name": "Embeddings Ollama1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xHuYe0MDGOs9IpBW",
+          "name": "Local Ollama service"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -2820,
+        840
+      ],
+      "id": "987bbfe2-327f-47dd-9c98-17d1e9a87c9a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "description": "Busca información relevante en la base de datos archivoslocales y se la pasa al agente para que este de sus respuestas",
+        "topK": 5
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+      "typeVersion": 1.1,
+      "position": [
+        -2000,
+        640
+      ],
+      "id": "96f64f93-3cf3-4251-8276-ccf2fea3bae5",
+      "name": "BUSCAR"
+    },
+    {
+      "parameters": {
+        "content": "-AQUI SE SUBEN LOS ARCHIVOS A LA BASE DE DATOS VECTORIAL\n",
+        "height": 720,
+        "width": 1340,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3520,
+        -280
+      ],
+      "typeVersion": 1,
+      "id": "737009eb-1e38-47d7-9205-d088cc263720",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "-FLUJO DEL AGENTE IA, EL CUAL TOMA UNA CONSULTA Y BUSCA LA RESPUESTA EN LA BASE DE DATOS VECTORIAL",
+        "height": 780,
+        "width": 1340,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -3520,
+        440
+      ],
+      "typeVersion": 1,
+      "id": "13366443-9743-4a48-bb5b-63a9a4699587",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "BUSCAR",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store1": {
+      "ai_vectorStore": [
+        []
+      ],
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BUSCAR": {
+      "ai_tool": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7e4a8ccd-521f-4e13-aee1-33b6b4b00ac5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "558d88703fb65b2d0e44613bc35916258b0f0bf983c5d4730c00c424b77ca36a"
+  },
+  "id": "pLYkKhe1MkEcEi84",
+  "tags": []
+}
